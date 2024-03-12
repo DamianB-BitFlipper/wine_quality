@@ -13,7 +13,7 @@ TRAIN_DATASET_PATH = Path("./train_dataset.pkl")
 TEST_DATASET_PATH = Path("./test_dataset.pkl")
 OUTPUT_MODEL_PATH = Path("./model.pth")
 
-N_EPOCHS = 8
+N_EPOCHS = 32
 BATCH_SIZE = 32
 
 # The wine attributes
@@ -35,37 +35,25 @@ class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
         # Define the network
-        self.nn_stack = nn.Sequential(
-            nn.Linear(N_INPUT_FEATURES, 100),
-            nn.ReLU(),
-            nn.Linear(100, 400),
-            nn.ReLU(),
-            nn.Linear(400, 800),
-            nn.ReLU(),
-            nn.Linear(800, 800),
-            nn.ReLU(),
-            nn.Linear(800, 400),
-            nn.ReLU(),
-            nn.Linear(400, 100),
-            nn.ReLU(),
-            nn.Linear(100, N_OUTPUT_FEATURES),
-            # Softmax along the 1st dimension (column)
-            nn.Softmax(dim=1),
-        )
+        self.linear1 = nn.Linear(N_INPUT_FEATURES, 1000)
+        self.linear2 = nn.Linear(1000, N_OUTPUT_FEATURES)
 
     def forward(self, x):
-        probabilities = self.nn_stack(x)
+        x = self.linear1(x)
+        x = torch.nn.functional.relu(x)
+        x = self.linear2(x)
+        probabilities = torch.nn.functional.softmax(x, dim=1)
         return probabilities
 
 
 def train_epoch(device, dataloader, model, loss_fn, optimizer):
-    size = len(dataloader.dataset)
-
     # Set the `model` to be in training mode
     model.train()
 
+    avg_loss = 0.0
+
     # Iterate the batches from the `dataloader`
-    for batch_id, (X, y) in enumerate(dataloader):
+    for X, y in dataloader:
         X, y = X.to(device), y.to(device)
 
         # Compute the prediction error
@@ -77,10 +65,9 @@ def train_epoch(device, dataloader, model, loss_fn, optimizer):
         optimizer.step()
         optimizer.zero_grad()
 
-        if batch_id % 20 == 0:
-            lossScore = loss.item()
-            currentProcessed = (batch_id + 1) * len(X)
-            print(f"loss: {lossScore:>7f}  [{currentProcessed:>5d}/{size:>5d}]")
+        avg_loss += loss.item()
+
+    print(f"loss: {avg_loss / len(dataloader):>7f}")
 
 
 def test_epoch(device, dataloader, model, loss_fn):
@@ -129,6 +116,9 @@ def preprocess_data():
         ]
     ]
     y_df = dataset_df["quality"]
+
+    # Standardize the inputs around 0
+    X_df = (X_df - X_df.mean()) / X_df.std()
 
     # Convert the X, y dataframes to respective tensors. Convert the `y_df` to
     # a one-hot-encoded counterpart
@@ -180,7 +170,7 @@ def main():
     model = NeuralNetwork().to(device)
     print(model)
 
-    loss_fn = nn.CrossEntropyLoss()
+    loss_fn = nn.BCELoss()
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-03)
 
     # Train the model!
