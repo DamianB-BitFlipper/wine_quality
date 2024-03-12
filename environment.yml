@@ -3,5 +3,14 @@ channels:
   - conda-forge
   - nodefaults
 dependencies:
+  - black
+  - pandas
+  - pre-commit
+  - pyright
   - python=3.11
   - pytorch
+
+  # Data Analysis
+  - jupyterlab
+  - matplotlib
+  - notebook

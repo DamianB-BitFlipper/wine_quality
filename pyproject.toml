@@ -1,0 +1,6 @@
+[tool.pyright]
+venv = "wine_quality"
+venvPath = "/Users/damianb/.micromamba/envs"
+
+[tool.black]
+line-length = 88
