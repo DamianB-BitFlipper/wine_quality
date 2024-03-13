@@ -207,7 +207,7 @@ def main():
     print(model)
 
     loss_fn = nn.MSELoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=1e-03)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-03)
 
     # Train the model!
     for epoch in range(N_EPOCHS):
