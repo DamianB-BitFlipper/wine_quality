@@ -140,6 +140,11 @@ def preprocess_data():
     std = X_train_df.std()
 
     X_train_df = (X_train_df - mean) / std
+
+    # Set an input-independent baseline on the `X_train_df`
+    # for col in X_train_df.columns:
+    #    X_train_df[col].values[:] = 0
+
     X_validate_df = (X_validate_df - mean) / std
     X_test_df = (X_test_df - mean) / std
 
