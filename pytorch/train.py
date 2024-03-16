@@ -14,8 +14,10 @@ TRAIN_DATASET_PATH = Path("./train_dataset.pkl")
 VALIDATE_DATASET_PATH = Path("./validate_dataset.pkl")
 TEST_DATASET_PATH = Path("./test_dataset.pkl")
 OUTPUT_MODEL_PATH = Path("./model.pth")
+EPOCH_DATA_DIR_PATH = Path("./epoch_data")
+EPOCH_DATA_FILE = "epoch_{}.pkl"
 
-N_EPOCHS = 48_000
+N_EPOCHS = 48
 BATCH_SIZE = 32
 
 # The wine attributes
@@ -65,7 +67,6 @@ def train_epoch(device, dataloader, model, loss_fn, optimizer):
     model.train()
 
     avg_loss = 0.0
-    correct_count = 0
 
     # Iterate the batches from the `dataloader`
     for X, y in dataloader:
@@ -82,13 +83,7 @@ def train_epoch(device, dataloader, model, loss_fn, optimizer):
 
         avg_loss += loss.item()
 
-        correct_count += (pred.round() == y).type(torch.int).sum().item()
-        break
-
     print(f"loss: {avg_loss / len(dataloader):>7f}")
-
-    correct_count /= BATCH_SIZE
-    print(f"\tTrain Accuracy: {(100*correct_count):>0.1f}%")
 
 
 def test_epoch(device, dataloader, model, loss_fn, *, error_type_str):
@@ -97,13 +92,19 @@ def test_epoch(device, dataloader, model, loss_fn, *, error_type_str):
     test_loss = 0
     correct_count = 0
 
+    y_true = []
+    y_pred = []
+
     # Disable gradient computation since we are not back-propagating on this data
     with torch.no_grad():
         for X, y in dataloader:
             X, y = X.to(device), y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
+
             correct_count += (pred.round() == y).type(torch.int).sum().item()
+            y_true += y.tolist()
+            y_pred += pred.round().tolist()
 
     # Normalize the loss on a per-batch basis
     test_loss /= n_batches
@@ -111,6 +112,8 @@ def test_epoch(device, dataloader, model, loss_fn, *, error_type_str):
     print(
         f"{error_type_str} Error: \n Accuracy: {(100*correct_count):>0.1f}%, Avg loss: {test_loss:>8f} \n"
     )
+
+    return y_true, y_pred
 
 
 def preprocess_data():
@@ -227,9 +230,12 @@ def main():
         print(f"Epoch {epoch}\n")
         print("-" * 30 + "\n")
         train_epoch(device, train_dataloader, model, loss_fn, optimizer)
-        test_epoch(
+        y_true, y_pred = test_epoch(
             device, validate_dataloader, model, loss_fn, error_type_str="Validate"
         )
+
+        with open(EPOCH_DATA_DIR_PATH / EPOCH_DATA_FILE.format(epoch), "wb") as f:
+            pickle.dump({"y_true": y_true, "y_pred": y_pred}, f)
 
     # Evaluate the final model on the `test_dataset`
     test_epoch(device, test_dataloader, model, loss_fn, error_type_str="Test")
