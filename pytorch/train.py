@@ -15,7 +15,7 @@ VALIDATE_DATASET_PATH = Path("./validate_dataset.pkl")
 TEST_DATASET_PATH = Path("./test_dataset.pkl")
 OUTPUT_MODEL_PATH = Path("./model.pth")
 
-N_EPOCHS = 48
+N_EPOCHS = 48_000
 BATCH_SIZE = 32
 
 # The wine attributes
@@ -65,6 +65,7 @@ def train_epoch(device, dataloader, model, loss_fn, optimizer):
     model.train()
 
     avg_loss = 0.0
+    correct_count = 0
 
     # Iterate the batches from the `dataloader`
     for X, y in dataloader:
@@ -81,7 +82,13 @@ def train_epoch(device, dataloader, model, loss_fn, optimizer):
 
         avg_loss += loss.item()
 
+        correct_count += (pred.round() == y).type(torch.int).sum().item()
+        break
+
     print(f"loss: {avg_loss / len(dataloader):>7f}")
+
+    correct_count /= BATCH_SIZE
+    print(f"\tTrain Accuracy: {(100*correct_count):>0.1f}%")
 
 
 def test_epoch(device, dataloader, model, loss_fn, *, error_type_str):
