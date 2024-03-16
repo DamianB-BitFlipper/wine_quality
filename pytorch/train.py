@@ -15,7 +15,7 @@ VALIDATE_DATASET_PATH = Path("./validate_dataset.pkl")
 TEST_DATASET_PATH = Path("./test_dataset.pkl")
 OUTPUT_MODEL_PATH = Path("./model.pth")
 
-N_EPOCHS = 32
+N_EPOCHS = 48
 BATCH_SIZE = 32
 
 # The wine attributes
@@ -44,13 +44,14 @@ def train_validate_test_split(df, train_size, validate_size, random_state=42):
 class NeuralNetwork(nn.Module):
     def __init__(self):
         super().__init__()
-        # Define the network
-        self.linear1 = nn.Linear(N_INPUT_FEATURES, 1000)
-        self.linear2 = nn.Linear(1000, N_OUTPUT_FEATURES)
+        # Define the network components
+        self.linear1 = nn.Linear(N_INPUT_FEATURES, 20)
+        self.linear2 = nn.Linear(20, N_OUTPUT_FEATURES)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.linear1(x)
-        x = torch.nn.functional.relu(x)
+        x = self.relu(x)
         x = self.linear2(x)
 
         # Flatten the tensor to 1-D vector of `BATCH_SIZE`
@@ -233,7 +234,6 @@ if __name__ == "__main__":
 
 # TODO to make this better
 # 1. Use a binomial distribution to transform the output between 0,9
-# 2. Use a more sophisticated optimizer such as Adam
 # 3. Play with a different model architecture
 # 5. Early stopping to prevent over-fitting
 #    - Make train,validate,test datasets
@@ -243,3 +243,4 @@ if __name__ == "__main__":
 # 6. Play with learning rates
 # 7. Dropout, batchnorms
 # 8. Learning rate schedule, large -> small
+# 9. Try adding a regularization term to the Loss Fn
